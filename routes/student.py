@@ -6,8 +6,7 @@ from typing import Optional
 router = APIRouter()
 
 @router.get("/students", response_model=list[StudentResponse])
-def view_all(course: str | None = None, 
-             age: int | None = None):
+def view_all(course: str | None = None, age: int | None = None):
 
     filters = {}
 
