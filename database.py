@@ -4,9 +4,15 @@ client = MongoClient("mongodb+srv://studentadmin:Neeraj10010@student-api-cluster
 
 db = client["student_manager"]
 
-student_collections = db["students"]
+students_collection = db["students"]
+users_collection = db["users"]
 
-student_collections.create_index(
+students_collection.create_index(
     "name",
     unique = True
+)
+
+users_collection.create_index(
+    "username",
+    unique=True
 )
