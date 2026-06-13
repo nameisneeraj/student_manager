@@ -7,6 +7,7 @@ class Student(BaseModel):
 
 
 class StudentResponse(BaseModel):
+    id: str
     name: str
     age: int
     course: str
@@ -16,3 +17,7 @@ class StudentListResponse(BaseModel):
     skip: int
     limit: int
     data: list[StudentResponse]
+
+class UpdateStudentResponse(BaseModel):
+    message: str
+    student: StudentResponse
