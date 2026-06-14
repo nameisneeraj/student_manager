@@ -1,13 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from models.student import Student ,StudentResponse, StudentListResponse, UpdateStudentResponse
+from models.student import Student ,StudentResponse, StudentListResponse, UpdateStudentResponse, CreatStudentResponse
 from database import students_collection
 from typing import Optional
 from dependencies.auth import (get_current_user)
 from pymongo import ASCENDING, DESCENDING
-from bson import ObjectId
-from bson.errors import InvalidId
-
-
+from utils.mongo import get_object_id, serialize_student
 
 router = APIRouter()
 
@@ -51,9 +48,10 @@ def view_all(
         query.skip(skip).limit(limit)
     )
     
-    for student in students:
-        if "_id" in student:
-            student["id"] = str(student.pop("_id"))
+    students = [
+    serialize_student(student)
+    for student in students
+]
     
     return {
     "total": total,
@@ -65,7 +63,10 @@ def view_all(
     
 
 
-@router.post("/students")
+@router.post(
+        "/students",
+        response_model=CreatStudentResponse
+)
 def add(
     newstudent: Student,
     current_user: str = Depends(get_current_user)
@@ -76,28 +77,38 @@ def add(
     if existing_student:
         raise HTTPException(status_code=400, detail="Student Already Exists In DB")
 
-    students_collection.insert_one(
+    result = students_collection.insert_one(
         {"name": newstudent.name, "age": newstudent.age, "course": newstudent.course}
     )
 
-    return {"message": "Student Added Successfully In DB", "student": newstudent}
+    
+
+    return {
+        "message": "Student Added Successfully",
+        "student": {
+            "id": str(result.inserted_id),
+            "name": newstudent.name,
+            "age": newstudent.age,
+            "course": newstudent.course
+        }
+    }
 
 
 
 
-
-
-@router.get("/students/{name}", response_model=StudentResponse)
+@router.get("/students/{student_id}", response_model=StudentResponse)
 def view_one(
-    name: str,
+    student_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    student = students_collection.find_one({"name": name})
+    student_object_id = get_object_id(student_id)
+
+    student = students_collection.find_one({"_id": student_object_id})
 
     if not student:
         raise HTTPException(status_code=404, detail="Student Doesn't Exist In DB")
 
-    student["_id"] = str(student["_id"])
+    student = serialize_student(student)
 
     return student
 
@@ -112,13 +123,8 @@ def update_one(
     student_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    try:
-        student_object_id = ObjectId(student_id)
-    except InvalidId:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid Student ID"
-        )
+    
+    student_object_id = get_object_id(student_id)
 
     student = students_collection.find_one(
         {"_id": student_object_id}
@@ -181,13 +187,7 @@ def delete_one(
     student_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    try:
-        student_object_id = ObjectId(student_id)
-    except InvalidId:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid Student ID"
-        )
+    student_object_id = get_object_id(student_id)
 
     student = students_collection.find_one(
         {"_id": student_object_id}
@@ -201,8 +201,7 @@ def delete_one(
 
     students_collection.delete_one(
         {"_id": student_object_id}
-    )
-
+)
 
     return {
     "message": "Student Deleted Successfully",

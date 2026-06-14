@@ -12,6 +12,10 @@ class StudentResponse(BaseModel):
     age: int
     course: str
 
+class CreatStudentResponse(BaseModel):
+    message: str
+    student: StudentResponse
+
 class StudentListResponse(BaseModel):
     total: int
     skip: int
@@ -21,3 +25,13 @@ class StudentListResponse(BaseModel):
 class UpdateStudentResponse(BaseModel):
     message: str
     student: StudentResponse
+
+
+class DeleteStudnetResponse(BaseModel):
+    message: str
+    student_id: str
+    student_name: str
+
+
+class MessageResponse(BaseModel):
+    message: str
